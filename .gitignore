@@ -1,0 +1,22 @@
+# Local development and operating-system files
+node_modules/
+coverage/
+dist/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# Credentials and locally generated extension signing keys
+.env
+.env.*
+!.env.example
+*.pem
+*.crx
+
+# Reference material that is not part of the EkClick extension project
+/reference code/*.zip
+/Logo/logo-design-skill-main/

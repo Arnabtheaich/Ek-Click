@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EkClick</title><link rel="stylesheet" href="styles.css"></head>
+<body class="popup">
+  <header class="topbar"><div class="brand"><img src="assets/brand-mark.svg" alt=""><div><b>EkClick</b><small>Classroom downloads</small></div></div><div class="icon-actions"><button class="icon-button" id="themeToggle" title="Cycle theme" aria-label="Cycle theme">◐</button><button class="icon-button" id="settingsButton" title="Settings" aria-label="Settings">⚙</button></div></header>
+  <main class="popup-main">
+    <section class="context-card"><div class="context-heading"><div class="eyebrow">CURRENT CLASSROOM PAGE <span class="status-dot"></span></div><button class="link-button context-refresh" id="refresh">Refresh</button></div><h1 id="courseTitle">Checking page…</h1><p id="postTitle">Open a Classroom classwork or stream post to discover files.</p><span id="scanStatus" class="sr-only" role="status">Scanning current post</span></section>
+    <section class="stream-post-picker" id="streamPostPicker" hidden><label for="streamPostSelect">Choose an announcement</label><select id="streamPostSelect" aria-label="Choose an announcement"><option value="">Choose an announcement…</option></select></section>
+    <div class="toolbar"><div><b>Attachments</b><span class="muted" id="fileCount">0 found</span></div><button class="link-button" id="selectAll">Select all</button></div>
+    <div class="filters"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Find a filename" aria-label="Find a filename"></label><select id="typeFilter" aria-label="Filter by file type"><option value="all">All types</option><option value="pdf">PDF</option><option value="video">Videos</option><option value="other">Other</option></select></div>
+    <div id="files" class="file-list" aria-live="polite"><div class="empty-state">Open an individual Classroom post, material or assignment details page, then refresh.</div></div>
+    <section class="download-options"><div><div class="option-title" id="destinationTitle">Download destination</div><div class="option-note" id="folderSummary">Checking download destination…</div></div><select id="downloadMode" aria-label="Download mode"><option value="individual">Individual files</option><option value="zip">ZIP archive (selected folder only)</option></select></section>
+    <section class="folder-action-panel" id="folderActionPanel" hidden><span id="folderActionText" role="status"></span><button class="link-button" id="folderActionButton" type="button"></button></section>
+    <button class="primary-button" id="downloadButton" disabled><span>Download selected</span><span class="button-count" id="selectedCount">0</span></button>
+    <p class="browser-note" id="browserNote">EkClick uses your browser default download location.</p>
+    <footer><button class="link-button" id="openManager">Open Download Manager ↗</button><span class="version">v0.5.1</span></footer>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="shared/core.js"></script><script src="shared/directory-store.js"></script><script src="shared/batch-draft.js"></script><script src="popup.js"></script>
+</body></html>

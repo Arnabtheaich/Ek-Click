@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 140" width="100%" height="100%">
+  <defs>
+    <filter id="shadow3" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#188038" flood-opacity="0.25"/>
+    </filter>
+    <linearGradient id="greenGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E8E3E"/>
+      <stop offset="100%" stop-color="#137333"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left: Squircle Icon Badge -->
+  <g transform="translate(24, 22)">
+    <rect x="0" y="0" width="96" height="96" rx="26" fill="url(#greenGrad3)" filter="url(#shadow3)"/>
+
+    <!-- Document 1 (Back Layer) -->
+    <path d="M38 28 L62 28 C65 28 67 30 67 33 L67 60" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- Document 2 (Main Front Layer) -->
+    <rect x="29" y="36" width="38" height="42" rx="4" fill="none" stroke="#FFFFFF" stroke-width="4.5"/>
+    
+    <!-- Bold Downward Inflow Chevron (Download/Click) -->
+    <path d="M40 54 L48 62 L56 54" fill="none" stroke="#FBBC04" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="48" y1="44" x2="48" y2="60" stroke="#FBBC04" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Right: Typography Lockup -->
+  <text x="144" y="68" font-family="system-ui, -apple-system, 'Google Sans', 'Inter', sans-serif" font-size="38" font-weight="800" letter-spacing="-0.5">
+    <tspan fill="#263238">Ek</tspan><tspan fill="#188038">Click</tspan>
+  </text>
+  <text x="146" y="98" font-family="system-ui, -apple-system, 'Inter', 'Roboto', sans-serif" font-size="15.5" font-weight="500" fill="#5F6368" letter-spacing="0.2">
+    Extension · Download Multiple Files in 1-Click
+  </text>
+</svg>

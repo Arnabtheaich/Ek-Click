@@ -1,0 +1,7 @@
+{
+  "name": "ekclick-classroom-downloader",
+  "version": "0.5.1",
+  "private": true,
+  "description": "Lightweight Manifest V3 browser extension for Classroom attachments",
+  "scripts": { "test": "node --test tests/*.test.js", "check": "node --check background.js && node --check content.js && node --check popup.js && node --check manager.js && node --check settings.js && node --check shared/core.js && node --check shared/directory-store.js && node --check shared/batch-draft.js && node --check shared/batch-queue.js && node --check shared/queue-result.js && node --check shared/download.js && node --check shared/zip.js && node tests/manifest-check.js" }
+}
