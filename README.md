@@ -14,7 +14,9 @@ EkClick is a browser extension that helps you find and download attachments from
 
 ## Walkthrough
 
-[Watch the EkClick walkthrough video](media/EkClick-Walkthrough.mp4) to see the extension's features in use.
+![EkClick walkthrough](media/EkClick-Walkthrough.gif)
+
+The animated preview loops automatically. [Open the full walkthrough video (MP4)](media/EkClick-Walkthrough.mp4) for the original video and audio.
 
 ## Install from source
 
