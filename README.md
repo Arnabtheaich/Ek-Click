@@ -12,6 +12,10 @@ EkClick is a browser extension that helps you find and download attachments from
 - Track progress, retry failed downloads, and clear EkClick's local download history.
 - Keep settings and queue data in local browser storage. EkClick does not upload files or account information to a server.
 
+## Walkthrough
+
+[Watch the EkClick walkthrough video](media/EkClick-Walkthrough.mp4) to see the extension's features in use.
+
 ## Install from source
 
 1. Download or clone this repository.
