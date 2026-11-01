@@ -90,14 +90,19 @@
     const text = new TextDecoder().decode(bytes.subarray(0, Math.min(bytes.length, 64))).replace(/^\uFEFF/, "").trimStart().toLowerCase();
     return text.startsWith("<!doctype html") || text.startsWith("<html") || text.startsWith("<head") || text.startsWith("<body");
   }
+  function isDriveErrorHtml(value) {
+    const text = String(value || "").replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").toLowerCase();
+    return /accounts\.google\.com|you need access to this file|request access to this file|sign in to continue|google drive.{0,40}(?:access denied|error|unavailable)|sorry, you can't view or download|too many users have viewed|download quota|file owner's download quota|virus scan warning|couldn't preview this file|could not preview this file/.test(text);
+  }
   function validateHeader(mime, type) {
     const clean = String(mime || "").split(";")[0].trim().toLowerCase();
-    if (HTML_TYPES.some(prefix => clean === prefix) || clean.startsWith("text/")) throw new Error("Drive returned a web page or text response instead of a file.");
+    const htmlFile = type === "html" && (clean === "text/html" || clean === "application/xhtml+xml");
+    if ((HTML_TYPES.some(prefix => clean === prefix) || clean.startsWith("text/")) && !htmlFile) throw new Error("Drive returned a web page or text response instead of a file.");
     if (type === "pdf" && clean && !["application/pdf", "application/octet-stream", "binary/octet-stream"].includes(clean)) throw new Error(`Expected a PDF, but Drive returned ${clean}.`);
     if (type === "video" && clean && !clean.startsWith("video/") && !["application/octet-stream", "binary/octet-stream"].includes(clean)) throw new Error(`Expected a video, but Drive returned ${clean}.`);
   }
   function validatePrefix(bytes, type, mime) {
-    if (looksHtml(bytes)) throw new Error("Drive returned an HTML preview, sign-in or access error page instead of the original file.");
+    if (looksHtml(bytes) && (type !== "html" || isDriveErrorHtml(new TextDecoder().decode(bytes)))) throw new Error("Drive returned an HTML preview, sign-in or access error page instead of the original file.");
     if (type === "pdf" && !pdfSignature(bytes)) throw new Error(`The response did not contain a PDF signature (received ${mime || "unknown content"}).`);
     if (type === "video" && /mp4|quicktime|x-m4v/i.test(mime) && !mp4Signature(bytes)) throw new Error("The response did not contain an MP4/MOV file signature.");
   }
@@ -180,10 +185,16 @@
     }
     const contentType = response.headers?.get?.("content-type") || "";
     if (response.ok && /(?:text\/html|application\/xhtml\+xml)/i.test(contentType) && !confirmationAttempted) {
-      const html = await limitedRawText(response);
+      // Inspect a clone so a genuine .html/.htm attachment keeps its original stream.
+      const html = await limitedRawText(typeof response.clone === "function" ? response.clone() : response);
       const fileId = Core.attachmentKind(file.url)?.id;
       const confirmedUrl = confirmationUrl(html, response.url || requestUrl, fileId);
       if (confirmedUrl) return getVerifiedResponse(file, options, true, confirmedUrl);
+      if (file.type === "html" && /\.html?$/i.test(file.name || "") && !isDriveErrorHtml(html)) {
+        // Drive serves real HTML attachments as text/html; accept those while
+        // continuing to reject preview, sign-in and access-denied documents.
+        return { response, contentType, totalBytes: Number(response.headers?.get?.("content-length")) || 0, suggestedName: filenameFromContentDisposition(response.headers?.get?.("content-disposition") || "") };
+      }
       throw new Error(previewFailure(html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 360), response.status));
     }
     if (!response.ok) throw new Error(await responseFailure(response));
@@ -233,13 +244,13 @@
       }
       const prefix = new Uint8Array(Math.min(prefixLength, 1024)); let start = 0;
       for (const chunk of prefixChunks) { const count = Math.min(chunk.byteLength, prefix.length - start); if (count > 0) { prefix.set(chunk.subarray(0, count), start); start += count; } }
-      if (looksHtml(prefix)) throw new Error(previewFailure(await readHtmlTail(reader, prefixChunks, prefixLength), response.status));
+      if (looksHtml(prefix) && (file.type !== "html" || isDriveErrorHtml(new TextDecoder().decode(prefix)))) throw new Error(previewFailure(await readHtmlTail(reader, prefixChunks, prefixLength), response.status));
       validatePrefix(prefix, file.type, contentType);
       const relativePath = typeof file.path === "string" && file.path ? file.path.split(/[\\/]+/).map(part => Core.sanitizeSegment(part, "EkClick")).join("/") : Core.organizePath(settings.folderTemplate, file.course, file.topic, file.name);
       const parts = relativePath.split("/").filter(Boolean);
       let filename = parts.pop() || Core.sanitizeSegment(file.name, "download");
       if (!file.renamed && suggestedName && usableSuggestedName(suggestedName)) filename = Core.sanitizeSegment(suggestedName, filename);
-      const expectedExtension = file.type === "pdf" ? ".pdf" : file.type === "video" && /video\/mp4|quicktime|x-m4v/i.test(contentType) ? (contentType.toLowerCase().includes("quicktime") ? ".mov" : ".mp4") : "";
+      const expectedExtension = file.type === "pdf" ? ".pdf" : file.type === "html" ? ".html" : file.type === "video" && /video\/mp4|quicktime|x-m4v/i.test(contentType) ? (contentType.toLowerCase().includes("quicktime") ? ".mov" : ".mp4") : "";
       const directory = await subdirectory(directoryHandle, parts);
       if (expectedExtension && !KNOWN_EXT.test(filename)) filename += expectedExtension;
       if (file.type === "pdf" && KNOWN_EXT.test(filename) && !filename.toLowerCase().endsWith(".pdf")) throw new Error(`The attachment title ends in a non-PDF extension (${filename}). EkClick stopped to avoid misnaming the downloaded content.`);
@@ -270,13 +281,13 @@
         if (typeof directory.removeEntry === "function") await directory.removeEntry(target.name).catch(() => {});
         throw error;
       }
-      return { state: "complete", name: target.name, path: [...parts, target.name].join("/"), bytesWritten, totalBytes, progress: 100, message: "Verified file content saved to the selected folder." };
+      return { state: "complete", name: target.name, destinationName: directoryHandle.name || "Selected folder", path: [...parts, target.name].join("/"), bytesWritten, totalBytes, progress: 100, message: "Verified file content saved to the selected folder." };
     } catch (error) {
       await reader.cancel().catch(() => {});
       throw error;
     }
   }
-  const api = { buildDownloadUrl, classroomAccountIndex, allowedHost, limitedText, limitedRawText, responseFailure, confirmationUrl, filenameFromContentDisposition, usableSuggestedName, validateHeader, validatePrefix, subdirectory, uniqueTarget, getVerifiedResponse, downloadToDirectory };
+  const api = { buildDownloadUrl, classroomAccountIndex, allowedHost, limitedText, limitedRawText, responseFailure, confirmationUrl, filenameFromContentDisposition, usableSuggestedName, validateHeader, validatePrefix, isDriveErrorHtml, subdirectory, uniqueTarget, getVerifiedResponse, downloadToDirectory };
   root.EkClickDownload = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

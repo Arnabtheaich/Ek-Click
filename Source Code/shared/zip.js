@@ -69,7 +69,13 @@
       for (let index = 0; index < files.length; index++) {
         if (options.signal?.aborted) throw new DOMException("The operation was aborted", "AbortError");
         const file = files[index];
-        const { response, contentType, totalBytes, suggestedName } = await EkClickDownload.getVerifiedResponse(file, { ...options, referrer: file.referrer || options.referrer });
+        let verified;
+        try { verified = await EkClickDownload.getVerifiedResponse(file, { ...options, referrer: file.referrer || options.referrer }); }
+        catch (error) {
+          if (error?.name === "AbortError") throw error;
+          throw new Error(`Could not add "${file.name || `file ${index + 1}`}" to the ZIP: ${error?.message || "Drive download failed."}`);
+        }
+        const { response, contentType, totalBytes, suggestedName } = verified;
         const reader = response.body.getReader();
         const prefixChunks = []; let prefixLength = 0;
         try {
@@ -114,7 +120,7 @@
       if (offset > 0xffffffff || centralSize > 0xffffffff) throw new Error("This ZIP archive exceeds the supported 4 GB size. Use Individual files instead.");
       await push(endRecord(entries.length, centralSize, centralOffset));
       await writable.close(); committed = true;
-      return { state: "complete", name: target.name, actualName: target.name, path: [...parts, target.name].join("/"), progress: 100, bytesWritten: offset, totalBytes: offset, message: `ZIP archive created with ${entries.length} file${entries.length === 1 ? "" : "s"}.` };
+      return { state: "complete", name: target.name, actualName: target.name, destinationName: rootDirectory.name || "Selected folder", path: [...parts, target.name].join("/"), progress: 100, bytesWritten: offset, totalBytes: offset, message: `ZIP archive created with ${entries.length} file${entries.length === 1 ? "" : "s"}.` };
     } catch (error) {
       await writable.abort(error).catch(() => {});
       await directory.removeEntry(target.name).catch(() => {});

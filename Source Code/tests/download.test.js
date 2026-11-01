@@ -8,7 +8,8 @@ const BatchDraft = require("../shared/batch-draft.js");
 const QueueResult = require("../shared/queue-result.js");
 
 class MemoryDirectory {
-  constructor(name = "root") { this.name = name; this.kind = "directory"; this.entries = new Map(); }
+  constructor(name = "root") { this.name = name; this.kind = "directory"; this.entries = new Map(); this.identity = Symbol(name); }
+  async isSameEntry(other) { return other?.identity === this.identity; }
   async getDirectoryHandle(name, options = {}) {
     if (!this.entries.has(name)) {
       if (!options.create) throw new DOMException("Missing", "NotFoundError");
@@ -102,6 +103,23 @@ test("streams MP4 chunks, updates progress, and retains the requested extension"
   assert.deepEqual([...saved.bytes.subarray(0, 8)], [...mp4Bytes().subarray(0, 8)]);
 });
 
+test("downloads a real HTML attachment while rejecting Drive HTML error pages", async () => {
+  const destination = new MemoryDirectory();
+  const html = "<!doctype html><html><head><title>Lecture</title></head><body><h1>Python lists</h1><p>Lesson content</p></body></html>";
+  const result = await Download.downloadToDirectory({ url: "https://drive.google.com/file/d/abc/view", type: "html", name: "Lecture.htm", path: "Lecture.htm" }, destination, {}, {
+    fetchImpl: async () => response(html, { type: "text/html", headers: { "content-disposition": 'attachment; filename="Lecture.htm"' } })
+  });
+  assert.equal(result.state, "complete");
+  assert.equal(result.name, "Lecture.htm");
+  assert.equal(new TextDecoder().decode((await destination.getFileHandle("Lecture.htm")).bytes), html);
+
+  const errorDestination = new MemoryDirectory();
+  await assert.rejects(() => Download.downloadToDirectory({ url: "https://drive.google.com/file/d/abc/view", type: "html", name: "Lecture.html", path: "Lecture.html" }, errorDestination, {}, {
+    fetchImpl: async () => response("<html><body>Google Drive sign in to continue</body></html>", { type: "text/html" })
+  }), /sign-in page/i);
+  assert.equal(errorDestination.entries.size, 0);
+});
+
 test("rejects HTML preview, login, and referer-block pages rather than saving them", async t => {
   for (const [html, expected] of [
     ["<html><body>Drive preview</body></html>", /HTML|preview/],
@@ -180,6 +198,24 @@ test("handles directory selection, IndexedDB-adapter persistence, and permission
   await assert.rejects(() => Directory.pickAndStore({}, store), /will not fall back to Downloads/);
 });
 
+test("changing the selected folder replaces the saved handle and directs the next download to the new root", async () => {
+  const data = new Map();
+  const store = Directory.createDirectoryStore({ get: async key => data.get(key), set: async (key, value) => data.set(key, value), delete: async key => data.delete(key) });
+  const oldFolder = new MemoryDirectory("TECH");
+  const newFolder = new MemoryDirectory("Course Downloads");
+  await Directory.pickAndStore({ showDirectoryPicker: async () => oldFolder }, store);
+  const selected = await Directory.pickAndStore({ showDirectoryPicker: async () => newFolder }, store);
+  const restored = await store.get();
+  assert.equal(await selected.isSameEntry(newFolder), true);
+  assert.equal(await restored.isSameEntry(newFolder), true);
+  assert.equal(await restored.isSameEntry(oldFolder), false);
+  const result = await Download.downloadToDirectory(pdf("new-location.pdf"), restored, {}, { fetchImpl: async () => response(pdfBytes()) });
+  assert.equal(result.state, "complete");
+  assert.equal((await newFolder.getDirectoryHandle("Course")).name, "Course");
+  assert.equal(oldFolder.entries.size, 0);
+  assert.ok((await (await newFolder.getDirectoryHandle("Course")).getDirectoryHandle("Topic")).entries.has("new-location.pdf"));
+});
+
 test("enables Choose Folder whenever the picker exists, and explains unsupported extension contexts", () => {
   const supported = { secureContext: true, pickerAvailable: true, indexedDbAvailable: true };
   assert.equal(Directory.chooseFolderDisabled(supported), false);
@@ -216,8 +252,8 @@ test("retains attachment selection while Settings is opened and restores it on t
 });
 
 test("maps verified downloads and failures to visible Download Manager states", () => {
-  assert.deepEqual(QueueResult.fromSuccess({ state: "complete", name: "notes.pdf", path: "Course/notes.pdf", progress: 100, bytesWritten: 32, totalBytes: 32, message: "Verified content saved." }), {
-    state: "complete", progress: 100, bytesWritten: 32, totalBytes: 32, actualName: "notes.pdf", path: "Course/notes.pdf", message: "Verified content saved."
+  assert.deepEqual(QueueResult.fromSuccess({ state: "complete", name: "notes.pdf", destinationName: "Course Downloads", path: "Course/notes.pdf", progress: 100, bytesWritten: 32, totalBytes: 32, message: "Verified content saved." }), {
+    state: "complete", progress: 100, bytesWritten: 32, totalBytes: 32, actualName: "notes.pdf", destinationName: "Course Downloads", path: "Course/notes.pdf", message: "Verified content saved."
   });
   assert.deepEqual(QueueResult.fromFailure(new Error("Google returned a sign-in page.")), { state: "failed", message: "Google returned a sign-in page." });
   assert.deepEqual(QueueResult.fromFailure(new DOMException("Cancelled", "AbortError")), { state: "skipped", message: "Cancelled by the user." });

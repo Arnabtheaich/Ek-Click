@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 let settings = Core.normalizeSettings();
 const directoryStore = EkClickDirectoryStore.createDirectoryStore();
-let currentDirectory = null;
+let currentDirectory = null, folderSelectionRevision = 0;
 function applyTheme() { const dark = settings.theme === "dark" || (settings.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches); document.body.classList.toggle("theme-dark", dark); }
 function fill() { $("theme").value = settings.theme; $("mode").value = settings.mode; $("downloadMethod").value = settings.downloadMethod; syncDownloadMode(); $("folderTemplate").value = settings.folderTemplate; $("duplicate").value = settings.duplicate; $("compact").checked = !!settings.compact; $("warnGeneric").checked = !!settings.warnGeneric; }
 function syncDownloadMode() { const zipOption = $("mode").querySelector('option[value="zip"]'); zipOption.disabled = $("downloadMethod").value !== "folder"; if (zipOption.disabled && $("mode").value === "zip") $("mode").value = "individual"; }
@@ -26,16 +26,32 @@ function updateFolderUi(handle, permission = "prompt") {
   else $("folderStatus").textContent = "Folder handle remembered; grant write access before the next batch.";
 }
 async function refreshFolderStatus() {
+  const revision = folderSelectionRevision;
   const capabilities = EkClickDirectoryStore.pickerCapabilities(window);
-  try { const handle = await directoryStore.get(); updateFolderUi(handle, await EkClickDirectoryStore.queryWritePermission(handle)); }
-  catch (error) { updateFolderUi(null, "denied"); $("folderStatus").textContent = error.message; console.warn("[EkClick][folder] handle_restore_failed", error?.name || "Error", capabilities); }
+  try {
+    const handle = await directoryStore.get();
+    const permission = await EkClickDirectoryStore.queryWritePermission(handle);
+    if (revision !== folderSelectionRevision) return;
+    updateFolderUi(handle, permission);
+  } catch (error) {
+    if (revision !== folderSelectionRevision) return;
+    updateFolderUi(null, "denied"); $("folderStatus").textContent = error.message; console.warn("[EkClick][folder] handle_restore_failed", error?.name || "Error", capabilities);
+  }
 }
 $("chooseFolder").addEventListener("click", async () => {
   try {
     const handle = await EkClickDirectoryStore.pickAndStore(window, directoryStore);
+    folderSelectionRevision++;
+    // Choosing a folder means the user wants EkClick's saved directory to be
+    // the active destination. Browser mode deliberately ignores this handle.
+    settings = Core.normalizeSettings({ ...settings, downloadMethod: "folder" });
+    $("downloadMethod").value = settings.downloadMethod;
+    syncDownloadMode();
+    await chrome.storage.local.set({ settings, directorySelectionRevision: `${Date.now()}-${crypto.randomUUID()}` });
     const permission = await EkClickDirectoryStore.queryWritePermission(handle);
     updateFolderUi(handle, permission);
-    $("folderStatus").textContent = settings.downloadMethod === "browser" ? "Saved, but not used in Default browser location mode." : (permission === "granted" ? "Folder selected and writable." : "Folder selected. Grant access before downloading.");
+    $("folderStatus").textContent = permission === "granted" ? "Folder selected and writable. EkClick downloads will use this folder." : "Folder selected. Grant access before downloading.";
+    $("saveStatus").textContent = "Selected folder mode is active; downloads will use this folder.";
   } catch (error) {
     if (error?.name === "AbortError") return;
     console.warn("[EkClick][folder] picker_failed", { name: error?.name || "Error", message: String(error?.message || "").slice(0, 180) });

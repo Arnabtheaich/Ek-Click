@@ -64,6 +64,21 @@ test("creates a valid store-only ZIP in the selected project root", async () => 
   assert.equal(view.getUint16(archive.length - 22 + 10, true), 2);
 });
 
+test("includes a real HTML attachment in a ZIP without treating its contents as a Drive preview", async () => {
+  const destination = new MemoryDirectory("Course Downloads");
+  const html = "<!doctype html><html><body><h1>Python tuples lesson</h1></body></html>";
+  const result = await Zip.writeArchive({ name: "HTML lesson.zip", archiveFiles: [{
+    url: "https://drive.google.com/file/d/html-lesson/view", name: "Lesson.html", type: "html"
+  }] }, destination, { folderTemplate: "." }, {
+    fetchImpl: async () => new Response(html, { headers: { "content-type": "text/html", "content-disposition": 'attachment; filename="Lesson.html"' } })
+  });
+  assert.equal(result.state, "complete");
+  const archive = (await destination.getFileHandle("HTML lesson.zip")).bytes;
+  const content = new TextDecoder().decode(archive);
+  assert.ok(content.includes("Lesson.html"));
+  assert.ok(content.includes("Python tuples lesson"));
+});
+
 test("ZIP verification rejects a Drive error page and leaves no partial archive", async () => {
   const destination = new MemoryDirectory();
   const file = { url: "https://drive.google.com/file/d/private/view", name: "private.pdf", type: "pdf" };
@@ -71,4 +86,13 @@ test("ZIP verification rejects a Drive error page and leaves no partial archive"
     fetchImpl: async () => new Response("<html>no access</html>", { headers: { "content-type": "text/html" } })
   }), /HTML|web page|response/i);
   assert.equal(destination.entries.has("Private.zip"), false);
+});
+
+test("identifies the source attachment that caused a ZIP download failure", async () => {
+  const destination = new MemoryDirectory();
+  const file = { url: "https://drive.google.com/file/d/missing/view", name: "Lecture.html", type: "html" };
+  await assert.rejects(() => Zip.writeArchive({ name: "Course files.zip", archiveFiles: [file] }, destination, { folderTemplate: "." }, {
+    fetchImpl: async () => new Response("<html><body>Error 404 (Not Found)</body></html>", { status: 404, headers: { "content-type": "text/html" } })
+  }), /Lecture\.html.*HTTP 404/);
+  assert.equal(destination.entries.has("Course files.zip"), false);
 });

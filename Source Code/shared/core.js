@@ -6,7 +6,8 @@
     "application/pdf": ".pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx", "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
     "application/msword": ".doc", "application/vnd.ms-excel": ".xls", "application/vnd.ms-powerpoint": ".ppt",
-    "text/plain": ".txt", "text/csv": ".csv", "image/jpeg": ".jpg", "image/png": ".png", "video/mp4": ".mp4"
+    "text/plain": ".txt", "text/csv": ".csv", "text/html": ".html", "application/xhtml+xml": ".xhtml",
+    "image/jpeg": ".jpg", "image/png": ".png", "video/mp4": ".mp4"
   };
   const DEFAULT_SETTINGS = Object.freeze({ theme: "system", mode: "individual", downloadMethod: "folder", folderTemplate: "EkClick/{course}/{topic}", duplicate: "rename", compact: false, warnGeneric: true });
 
@@ -57,6 +58,7 @@
   function typeFromMetadata(name, mime = "", hint = "", url = "") {
     const ext = (cleanCandidate(name).match(/\.([a-z0-9]{1,10})$/i)?.[1] || "").toLowerCase();
     const metadata = `${mime} ${hint} ${url}`.toLowerCase();
+    if (["html", "htm", "xhtml"].includes(ext) || /(?:text\/html|application\/xhtml\+xml|\bhtml\b)/.test(metadata)) return "html";
     if (ext === "pdf" || metadata.includes("application/pdf") || /\bpdf\b/.test(metadata)) return "pdf";
     if (["mp4", "mov", "avi", "webm", "mkv", "m4v"].includes(ext) || /video\//.test(metadata) || /\bvideo\b/.test(metadata)) return "video";
     const kind = attachmentKind(url)?.kind;

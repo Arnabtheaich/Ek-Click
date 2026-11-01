@@ -7,6 +7,7 @@
       bytesWritten: result.bytesWritten,
       totalBytes: result.totalBytes,
       actualName: result.name,
+      destinationName: result.destinationName,
       path: result.path,
       message: result.message
     };

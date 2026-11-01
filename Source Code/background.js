@@ -127,6 +127,7 @@ async function updateItem(message) {
   if (typeof message.totalBytes === "number") item.totalBytes = message.totalBytes;
   if (typeof message.actualName === "string") item.actualName = Core.sanitizeSegment(message.actualName, item.name);
   if (typeof message.path === "string") item.path = message.path;
+  if (typeof message.destinationName === "string") item.destinationName = message.destinationName;
   if (Number.isInteger(message.downloadId)) item.downloadId = message.downloadId;
   if (message.clearDownloadId) delete item.downloadId;
   if (typeof message.message === "string") item.message = message.message.slice(0, 400);

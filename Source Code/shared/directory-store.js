@@ -61,9 +61,13 @@
   function createDirectoryStore(adapter = createIndexedDbAdapter()) {
     return {
       get: () => adapter.get(HANDLE_KEY),
-      save: handle => {
+      save: async handle => {
         if (!handle || handle.kind !== "directory" || typeof handle.getDirectoryHandle !== "function") return Promise.reject(new Error("The selected item is not a usable directory handle."));
-        return adapter.set(HANDLE_KEY, handle);
+        await adapter.set(HANDLE_KEY, handle);
+        const saved = await adapter.get(HANDLE_KEY);
+        if (!saved || saved.kind !== "directory") throw new Error("EkClick could not verify the newly selected folder in local storage. Choose it again before downloading.");
+        if (typeof handle.isSameEntry === "function" && !(await handle.isSameEntry(saved))) throw new Error("EkClick restored a different folder after saving the selection. Choose it again before downloading.");
+        return saved;
       },
       clear: () => adapter.delete(HANDLE_KEY)
     };
@@ -97,8 +101,7 @@
     }
     // Keep this first awaited operation directly inside the Choose Folder click handler.
     const handle = await win.showDirectoryPicker({ mode: "readwrite" });
-    await store.save(handle);
-    return handle;
+    return store.save(handle);
   }
   async function queryWritePermission(handle) {
     if (!handle || typeof handle.queryPermission !== "function") return "denied";

@@ -14,6 +14,12 @@ test("adds a known extension only when absent and does not double it", () => {
   assert.equal(Core.ensureExtension("homework.PDF", "application/pdf"), "homework.PDF");
   assert.equal(Core.ensureExtension("scan.jpg", "application/pdf"), "scan.jpg");
 });
+test("recognizes HTML attachments from their filename and Classroom type hint", () => {
+  assert.equal(Core.typeFromMetadata("Lecture.html"), "html");
+  assert.equal(Core.typeFromMetadata("Lecture.htm"), "html");
+  assert.equal(Core.typeFromMetadata("Lecture", "", "HTML"), "html");
+  assert.equal(Core.resolveFilename(["Lecture"], "text/html").name, "Lecture.html");
+});
 test("preserves Bangla and Unicode while sanitizing invalid path characters", () => {
   assert.equal(Core.sanitizeSegment("বাংলা: গণিত?"), "বাংলা_ গণিত_");
   assert.equal(Core.organizePath("EkClick/{course}/{topic}", "বাংলা", "সপ্তাহ/১", "পাঠ.pdf"), "EkClick/বাংলা/সপ্তাহ_১/পাঠ.pdf");

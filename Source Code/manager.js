@@ -1,7 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 let settings = Core.normalizeSettings(), state = { items: [] }, search = "", filter = "all";
-let processing = false, activeController = null;
+let processing = false, activeController = null, activeDirectoryRevision = "", folderChangePending = false;
 const send = message => chrome.runtime.sendMessage(message);
 const directoryStore = EkClickDirectoryStore.createDirectoryStore();
 const managerPort = chrome.runtime.connect({ name: "ekclick-manager" });
@@ -18,7 +18,7 @@ function render() {
   if (!shown.length) { const empty = document.createElement("div"); empty.className = "empty-state"; empty.textContent = items.length ? "No files match these filters." : "Your EkClick batches will appear here."; list.append(empty); }
   for (const item of shown) {
     const row = document.createElement("div"); row.className = "manager-row";
-    const file = document.createElement("div"); file.className = "manager-file"; const name = document.createElement("b"); name.textContent = item.actualName || item.name; name.title = item.downloadId != null ? `Default browser location: ${item.actualName || item.name}` : item.path; const location = item.downloadId != null ? `Default browser location · ${item.actualName || item.name}` : (item.path || ""); const sub = document.createElement("small"); sub.textContent = `${item.course || "Classroom"} · ${item.topic || "Uncategorized"} · ${location}`; file.append(name, sub);
+    const file = document.createElement("div"); file.className = "manager-file"; const name = document.createElement("b"); name.textContent = item.actualName || item.name; name.title = item.downloadId != null ? `Default browser location: ${item.actualName || item.name}` : `${item.destinationName || "Selected folder"}/${item.path || ""}`; const location = item.downloadId != null ? `Default browser location · ${item.actualName || item.name}` : `${item.destinationName ? `${item.destinationName} / ` : ""}${item.path || ""}`; const sub = document.createElement("small"); sub.textContent = `${item.course || "Classroom"} · ${item.topic || "Uncategorized"} · ${location}`; file.append(name, sub);
     const type = document.createElement("span"); type.className = "muted"; type.textContent = (item.type || "file").toUpperCase();
     const status = document.createElement("div"); status.className = "manager-status"; const pill = document.createElement("span"); pill.className = `status-pill ${item.state}`; pill.textContent = ({ queued: "Queued", downloading: "Downloading", complete: "Completed", failed: "Failed", skipped: "Skipped" })[item.state] || item.state; status.append(pill); if (item.message) { const note = document.createElement("small"); note.textContent = item.message; status.append(note); }
     const progress = document.createElement("div"); progress.className = "manager-progress"; if (item.state === "downloading") { const pctText = document.createElement("small"); pctText.textContent = typeof item.progress === "number" ? `${item.progress}%` : (item.bytesWritten ? `${Math.round(item.bytesWritten / 1048576)} MB written` : "Receiving data"); const track = document.createElement("div"); track.className = "item-progress"; const bar = document.createElement("span"); bar.style.width = `${item.progress || 0}%`; track.append(bar); progress.append(pctText, track); }
@@ -75,22 +75,29 @@ async function processQueue() {
           }
           continue;
         }
-        let handle;
-        try { handle = await directoryStore.get(); }
-        catch (error) { handle = null; }
+        let handle, selectionRevision;
+        try {
+          const before = await chrome.storage.local.get("directorySelectionRevision");
+          selectionRevision = before.directorySelectionRevision || "";
+          handle = await directoryStore.get();
+        } catch (error) { handle = null; }
         if (!handle) {
           const message = "No destination folder is selected. Choose a folder in Settings, then retry this batch.";
           for (const queued of current.items.filter(entry => entry.state === "queued")) await writeItem(queued.id, { state: "failed", message });
           break;
         }
         const permission = await EkClickDirectoryStore.queryWritePermission(handle);
+        const after = await chrome.storage.local.get("directorySelectionRevision");
+        if ((after.directorySelectionRevision || "") !== selectionRevision) continue;
         if (permission !== "granted") {
           const message = "The selected folder's write permission expired or was revoked. Grant access in Settings, then retry.";
           for (const queued of current.items.filter(entry => entry.state === "queued")) await writeItem(queued.id, { state: "failed", message });
           break;
         }
+        activeDirectoryRevision = selectionRevision;
+        folderChangePending = false;
         activeController = new AbortController();
-        await writeItem(item.id, { state: "downloading", progress: 0, bytesWritten: 0, message: "Validating Drive response…" });
+        await writeItem(item.id, { state: "downloading", destinationName: handle.name || "Selected folder", progress: 0, bytesWritten: 0, message: "Validating Drive response…" });
         try {
           const progressOptions = {
             signal: activeController.signal,
@@ -100,10 +107,14 @@ async function processQueue() {
           const result = item.format === "zip"
             ? await EkClickZip.writeArchive(item, handle, settings, progressOptions)
             : await EkClickDownload.downloadToDirectory(item, handle, settings, progressOptions);
+          if (folderChangePending && activeController.signal.aborted) throw new DOMException("The destination folder changed; restarting in the newly selected folder.", "AbortError");
           await writeItem(item.id, EkClickQueueResult.fromSuccess(result));
         } catch (error) {
-          await writeItem(item.id, EkClickQueueResult.fromFailure(error));
-        } finally { activeController = null; }
+          if (folderChangePending) {
+            folderChangePending = false;
+            await writeItem(item.id, { state: "queued", progress: 0, bytesWritten: 0, message: "Destination folder changed; restarting in the newly selected folder." });
+          } else await writeItem(item.id, EkClickQueueResult.fromFailure(error));
+        } finally { activeController = null; activeDirectoryRevision = ""; }
       }
     });
   } catch (error) { $("managerStatus").textContent = error?.message || "Could not start the download queue."; }
@@ -120,5 +131,12 @@ $("clearAll").addEventListener("click", async () => {
 });
 $("themeToggle").addEventListener("click", async () => { settings.theme = ({ system: "light", light: "dark", dark: "system" })[settings.theme]; await chrome.storage.local.set({ settings }); applyTheme(); });
 chrome.storage.local.get(["settings"]).then(data => { settings = Core.normalizeSettings(data.settings); applyTheme(); refresh().then(processQueue); });
-chrome.storage.onChanged.addListener(changes => { if (changes.downloadState) { state = changes.downloadState.newValue || { items: [] }; render(); if (state.items.some(item => item.state === "queued")) processQueue(); } if (changes.settings) { settings = Core.normalizeSettings(changes.settings.newValue); applyTheme(); } });
+chrome.storage.onChanged.addListener(changes => {
+  if (changes.downloadState) { state = changes.downloadState.newValue || { items: [] }; render(); if (state.items.some(item => item.state === "queued")) processQueue(); }
+  if (changes.settings) { settings = Core.normalizeSettings(changes.settings.newValue); applyTheme(); }
+  if (changes.directorySelectionRevision && changes.directorySelectionRevision.newValue !== activeDirectoryRevision) {
+    folderChangePending = true;
+    activeController?.abort();
+  }
+});
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (settings.theme === "system") applyTheme(); });
