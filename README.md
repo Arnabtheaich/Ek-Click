@@ -96,3 +96,7 @@ EkClick reads attachment links and labels from the active Google Classroom page.
 ## License
 
 No license has been added yet. Until one is included, the source remains subject to the repository owner's rights.
+
+## Support and contribute
+
+If EkClick is useful to you, please consider giving the project a ⭐ on [GitHub](https://github.com/Arnabtheaich/Ek-Click). Found a bug or have an idea to improve it? Contributions and suggestions are welcome—open an [issue](https://github.com/Arnabtheaich/Ek-Click/issues) or submit a pull request.
