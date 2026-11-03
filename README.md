@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Logo/ekclick-logo.svg" alt="EkClick — Google Classroom Downloads" width="540">
+</p>
+
 # EkClick — Google Classroom Downloads
 
 EkClick is a browser extension that helps you find and download attachments from Google Classroom. It supports individual post pages and inline attachments in course Stream announcements. Choose an announcement to see only its files.
