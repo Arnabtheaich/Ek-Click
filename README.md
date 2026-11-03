@@ -18,15 +18,19 @@ EkClick is a browser extension that helps you find and download attachments from
 
 The animated preview loops automatically. [Open the full walkthrough video (MP4)](media/EkClick-Walkthrough.mp4) for the original video and audio.
 
-## Install from source
+## Manual installation
 
-1. Download or clone this repository.
+EkClick is not available on the Chrome Web Store yet. You can install it manually from this repository:
+
+![EkClick manual installation walkthrough](media/EkClick-Manual-Installation.gif)
+
+1. On the [GitHub repository page](https://github.com/Arnabtheaich/Ek-Click), select **Code** → **Download ZIP**, then extract the ZIP file. Alternatively, clone the repository with Git.
 2. Open `brave://extensions` in Brave or `chrome://extensions` in Chrome.
 3. Turn on **Developer mode**.
-4. Select **Load unpacked** and choose the [`Source Code`](Source%20Code/) directory.
+4. Select **Load unpacked** and choose the extracted [`Source Code`](Source%20Code/) directory.
 5. Open Google Classroom while signed in, then select EkClick from the browser toolbar.
 
-The extension has no build step. After pulling updates, use **Reload** on the extension's card and refresh the Classroom tab.
+The extension has no build step. After pulling updates, use **Reload** on the extension's card and refresh the Classroom tab. For the original video with audio, [open the manual installation MP4](media/manual%20installation.mp4).
 
 ## Use
 
