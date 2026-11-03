@@ -2,56 +2,75 @@
   <img src="Logo/ekclick-logo.svg" alt="EkClick — Google Classroom Downloads" width="540">
 </p>
 
-# EkClick — Google Classroom Downloads
+<h1 align="center">Download your Classroom attachments with ease</h1>
 
-EkClick is a browser extension that helps you find and download attachments from Google Classroom. It supports individual post pages and inline attachments in course Stream announcements. Choose an announcement to see only its files.
+<p align="center">
+  EkClick finds attachments in Google Classroom and helps you save them, individually or as a ZIP.
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> ·
+  <a href="#walkthrough">Walkthrough</a> ·
+  <a href="#manual-installation">Install</a> ·
+  <a href="#using-ekclick">How to use</a> ·
+  <a href="#privacy">Privacy</a>
+</p>
+
+> **Not on the Chrome Web Store yet.** Install EkClick manually from this repository using the steps below.
 
 ## Features
 
-- Discover Drive attachments on Classroom post, material, assignment, and Stream pages.
-- Select an announcement before viewing or downloading its Stream attachments.
-- Review, select, and rename files before adding them to the download queue.
-- Download to the browser's default location or to a folder you select for EkClick.
-- Organize files with course and post folder names; create a ZIP from selected files in the chosen EkClick folder.
+- Find Drive attachments on Classroom posts, materials, assignments, and course Stream announcements.
+- Choose a Stream announcement to see only the files attached to that post.
+- Review, select, and rename files before downloading.
+- Save to your browser's default download location or a folder you choose for EkClick.
+- Organize downloads by course and post, and create ZIP archives in your selected EkClick folder.
 - Track progress, retry failed downloads, and clear EkClick's local download history.
-- Keep settings and queue data in local browser storage. EkClick does not upload files or account information to a server.
+- Keep settings and download history in local browser storage. EkClick does not upload files or account information to a server.
 
 ## Walkthrough
 
+See EkClick's features in action:
+
 ![EkClick walkthrough](media/EkClick-Walkthrough.gif)
 
-The animated preview loops automatically. [Open the full walkthrough video (MP4)](media/EkClick-Walkthrough.mp4) for the original video and audio.
+The preview loops automatically. [Watch the full walkthrough with audio](media/EkClick-Walkthrough.mp4).
 
 ## Manual installation
 
-EkClick is not available on the Chrome Web Store yet. You can install it manually from this repository:
+Follow the video, or use the steps below. EkClick has no build step.
 
 ![EkClick manual installation walkthrough](media/EkClick-Manual-Installation.gif)
 
-1. On the [GitHub repository page](https://github.com/Arnabtheaich/Ek-Click), select **Code** → **Download ZIP**, then extract the ZIP file. Alternatively, clone the repository with Git.
+1. On the [EkClick GitHub repository](https://github.com/Arnabtheaich/Ek-Click), select **Code** → **Download ZIP**. Extract the downloaded ZIP file. You can also clone the repository with Git.
 2. Open `brave://extensions` in Brave or `chrome://extensions` in Chrome.
 3. Turn on **Developer mode**.
-4. Select **Load unpacked** and choose the extracted [`Source Code`](Source%20Code/) directory.
+4. Select **Load unpacked** and choose the extracted `Source Code` folder.
 5. Open Google Classroom while signed in, then select EkClick from the browser toolbar.
 
-The extension has no build step. After pulling updates, use **Reload** on the extension's card and refresh the Classroom tab. For the original video with audio, [open the manual installation MP4](media/manual%20installation.mp4).
+After downloading an update, extract it and use **Reload** on EkClick's extension card. Refresh the Classroom tab afterward. [Open the installation video with audio](media/manual%20installation.mp4).
 
-## Use
+## Using EkClick
 
-On a post/details page, open EkClick and select the attachments you want. On a course Stream page, refresh EkClick after the posts appear, choose an announcement from the dropdown, then select its attachments. Scroll the Stream to load more announcements and press **Refresh** to discover them.
+### Find attachments
 
-Choose the destination in Settings:
+- **Post, material, or assignment:** Open its details page, then open EkClick.
+- **Course Stream:** Open EkClick after announcements load, choose an announcement, and select its attachments. Scroll the Stream to load more posts, then press **Refresh** to find them.
 
-- **Default browser location** uses the browser's configured Downloads folder and save-dialog preference.
-- **Selected EkClick folder** writes files to the folder you select. The browser may ask you to grant or renew folder access.
+### Choose where files are saved
 
-ZIP downloads are available with **Selected EkClick folder**. Files that require access from a signed-in Google account can only be downloaded if that account is permitted to access them. EkClick does not bypass Classroom or Drive sharing permissions.
+| Destination | What it does |
+| --- | --- |
+| **Default browser location** | Saves through the browser to its configured Downloads location and follows its save-dialog setting. |
+| **Selected EkClick folder** | Writes files directly to the folder you select. The browser may ask you to grant or renew folder access. ZIP downloads are available in this mode. |
 
-See [`Source Code/README.md`](Source%20Code/README.md) for detailed behavior, permissions, privacy notes, and troubleshooting.
+Downloads still follow Google's sharing permissions. EkClick can download a file only when the signed-in Google account has access to it.
 
-## Development and tests
+For detailed behavior, permissions, and troubleshooting, see [`Source Code/README.md`](Source%20Code/README.md).
 
-Requires Node.js 18 or later. From the extension directory:
+## Development
+
+Requires Node.js 18 or later. Run these commands from the extension folder:
 
 ```sh
 cd "Source Code"
@@ -59,18 +78,21 @@ npm test
 npm run check
 ```
 
-The automated tests cover attachment discovery, multiple Stream announcements, lazy-loaded posts, download validation and queue behavior, folder permissions, and ZIP creation. They do not use a signed-in Google account; verify live Classroom and Drive behavior in your browser.
+Tests cover attachment discovery, multiple Stream announcements, lazy-loaded posts, download validation and queue behavior, folder permissions, and ZIP creation. They do not use a signed-in Google account, so verify live Classroom and Drive behavior in your browser.
 
-## Repository layout
+## Repository contents
 
-- `Source Code/` — installable extension, tests, and technical documentation.
-- `EkClick_UI_Reference/` — offline UI prototype and design notes.
-- `Logo/` — project logo source notes.
+| Folder | Contents |
+| --- | --- |
+| [`Source Code/`](Source%20Code/) | Installable extension, tests, and technical documentation |
+| [`EkClick_UI_Reference/`](EkClick_UI_Reference/) | Offline UI prototype and design notes |
+| [`Logo/`](Logo/) | SVG logo and icon assets, plus original logo notes |
+| [`media/`](media/) | Walkthrough videos and README previews |
 
-## Privacy and permissions
+## Privacy
 
-EkClick reads attachment links and labels from the active Google Classroom page. Drive host access is optional and requested when selected-folder downloads need to fetch file contents. Settings and download history stay in local extension storage. The extension does not add OAuth scopes, upload files, or send Classroom data to an external service. Downloads remain subject to Google's access controls and your signed-in account's permissions.
+EkClick reads attachment links and labels from the active Google Classroom page. Drive host access is optional and requested when selected-folder downloads need to fetch file contents. Settings and download history stay in local extension storage. EkClick does not add OAuth scopes, upload files, or send Classroom data to an external service. Downloads remain subject to Google's access controls and your account's permissions.
 
 ## License
 
-No license has been added yet. Until a license is included, the source remains subject to the repository owner's rights.
+No license has been added yet. Until one is included, the source remains subject to the repository owner's rights.
